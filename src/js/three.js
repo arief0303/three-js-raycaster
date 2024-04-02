@@ -42,11 +42,14 @@ export default class Three {
     this.controls.maxPolarAngle = Math.PI / 2; // radians
 
     this.clock = new THREE.Clock();
+    this.raycaster = new THREE.Raycaster();
+    this.mouse = new THREE.Vector2();
 
     this.setLights();
     this.setGeometry();
     this.render();
     this.setResize();
+    this.raycasterListener();
   }
 
   setLights() {
@@ -55,8 +58,8 @@ export default class Three {
   }
 
   setGeometry() {
-    this.boxGeometry = new THREE.BoxGeometry(1, 1, 1, 128, 128, 128);
-    this.boxMaterial = new THREE.ShaderMaterial({
+    this.sphereGeometry = new THREE.SphereGeometry(1, 128, 128);
+    this.sphereMaterial = new THREE.ShaderMaterial({
       side: THREE.DoubleSide,
       wireframe: true,
       fragmentShader: fragment,
@@ -65,13 +68,13 @@ export default class Three {
         progress: { type: 'f', value: 0 }
       }
     });
-    this.boxMesh = new THREE.Mesh(this.boxGeometry, this.boxMaterial);
-    this.scene.add(this.boxMesh);
+    this.sphereMesh = new THREE.Mesh(this.sphereGeometry, this.sphereMaterial);
+    this.scene.add(this.sphereMesh);
 
     this.planeGeometry = new THREE.PlaneGeometry(10000, 10000);
     this.planeMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
     this.planeMesh = new THREE.Mesh(this.planeGeometry, this.planeMaterial);
-    this.planeMesh.position.y = -0.5; // Set the plane at the bottom of the scene
+    this.planeMesh.position.y = -1; // Set the plane at the bottom of the scene
     this.planeMesh.rotation.x = -Math.PI / 2; // Rotate the plane to be horizontal
     this.scene.add(this.planeMesh);
   }
@@ -86,6 +89,30 @@ export default class Three {
 
     this.renderer.render(this.scene, this.camera);
     requestAnimationFrame(this.render.bind(this));
+  }
+
+  raycasterListener() {
+    window.addEventListener('click', this.onMouseClick.bind(this), false);
+  }
+
+  onMouseClick(event) {
+    event.preventDefault();
+
+    this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+    this.raycaster.setFromCamera(this.mouse, this.camera);
+
+    const intersects = this.raycaster.intersectObjects([this.sphereMesh]);
+
+    if (intersects.length > 0) {
+      const markerGeometry = new THREE.SphereGeometry(0.05, 32, 32);
+      const markerMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+      const marker = new THREE.Mesh(markerGeometry, markerMaterial);
+
+      marker.position.copy(intersects[0].point);
+      this.scene.add(marker);
+    }
   }
 
   setResize() {
